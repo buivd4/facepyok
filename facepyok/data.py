@@ -66,9 +66,10 @@ class FriendList(Data):
     def __init__(self, id, api, name):
         super(FriendList, self).__init__(id, api)
         self.name = name
+        self.api.use_table('FriendList')
 
     def all(self):
-        members = self.api.get(table='friendlist_member', fields='uid', conditions="flid='%s'" % owner.id())
+        members = self.api.get(fields='uid', id=self.id)
         results = list()
         for member in members:
             results.append(member['uid'])
@@ -86,26 +87,21 @@ class Post(Data, FilterInterface):
             Class FilterInterface  :  implement
     """
 
-    def __init__(self, id, api, fields):
+    def __init__(self, id, api, fields=['message', 'created_time', 'actor_id']):
         super(Post, self).__init__(id=id, api=api)
-        content = self.api.get(table='stream', fields=[fields], conditions="post_id='%s'" % (self.id))[0]
-        for field in fields:
-            setattr(self, field, content[field])
-
-    def all_comment(self):
+        self.api.use_table('Post')
         try:
-            results = []
-            for comment in self.comments['comment_list']:
-                results.append(
-                    Comment(message=comment['text'], created_time=comment['time'], actor_id=comment['fromid'],
-                            id=comment['id']))
-            return results
-        except AttributeError:
-            raise AttributeError('Attribute comment not defined!')
+            content = self.api.get(fields=fields, id=self.id)
+        except IndexError:
+            content = {}
+            for field in fields:
+                content.update({field: ''})
+        finally:
+            for field in fields:
+                setattr(self, field, content[field])
 
-    def all_reply(self):
-        response = self.api.get(table='comment', fields=['text', 'time', 'fromid'],
-                                conditions="post_id='%s'" % (self.id))
+    def comments(self):
+        response = self.api.get(fields='comments', id=self.id)
         results = []
         for res in response:
             results.append(Comment(message=res['text'], created_time=res['time'], actor_id=res['fromid']))

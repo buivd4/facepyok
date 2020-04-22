@@ -4,20 +4,21 @@ from facepyok.data import Post
 class Stream(object):
     """ user's stream or the user's profile """
 
-    def __init__(self, sid, api, vtype='source_id'):
+    def __init__(self, id, api, vtype='source_id'):
         super(Stream, self).__init__()
-        self.id = sid
+        self.id = id
         self.type = vtype
         self.api = api
+        self.api.use_table('Stream')
 
     def permalink(self):
-        return self.api.get(table='stream', fields='permalink', conditions="source_id='%s'" % self.id)['0']['permalink']
+        return self.api.get(fields='permalink', id=self.id)['permalink']
 
     def posts(self, post_fields=['message', 'created_time', 'actor_id']):
         results = []
-        response = self.api.get(table='stream', fields='post_id', conditions="source_id='%s'" % self.id)
+        response = self.api.get(fields='post_id', id=self.id)
         for post in response:
-            results.append(Post(id=post['post_id'], api=self.api, fields=post_fields))
+            results.append(Post(id=post['post_id'], api=self.api))
         return results
 
     def contents_by_actor(self, actor_id, post_fields=['message', 'created_time', 'actor_id']):
